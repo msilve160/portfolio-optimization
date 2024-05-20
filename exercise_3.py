@@ -13,7 +13,8 @@
 # limitations under the License.
 
 # TODO: Import any required packages here
-
+from dimod import Binary, ConstrainedQuadraticModel
+from dwave.system import LeapHybridCQMSampler
 
 import utilities
 
@@ -30,7 +31,8 @@ def define_variables(stockcodes):
 
     # TODO: Define your list of variables and call it stocks
     ## Hint: Remember to import the required package at the top of the file for Binary variables
-    
+    stocks = [Binary(f's_{stk}') for stk in stockcodes]
+
 
 
     return stocks
@@ -66,31 +68,34 @@ def define_cqm(stocks, num_stocks_to_buy, price, returns, budget, variance):
 
     # TODO: Initialize the ConstrainedQuadraticModel called cqm
     ## Hint: Remember to import the required package at the top of the file for ConstrainedQuadraticModels
-    
+    cqm = ConstrainedQuadraticModel()
+
 
     # TODO: Add a constraint to choose exactly num_stocks_to_buy stocks
     ## Important: Use the label 'choose k stocks', this label is case sensitive
-        
+    cqm.add_constraint(sum(stocks)==num_stocks_to_buy,label = 'choose k stocks')
 
     # TODO: Add a constraint that the cost of the purchased stocks is less than or equal to the budget
     ## Important: Use the label 'budget_limitation', this label is case sensitive and uses an underscore
-
+    cqm.add_constraint(sum([stocks[i]*price[i] for i in range(len(stocks))])<=budget,label = 'budget_limitation')
 
     # TODO: Add an objective function maximize returns AND minimize variance
     ## Hint: Determine each objective separately then add them together
     ## Hint: Variance is computed as a quadratic term: variance[i][j]*stocks[i]*stocks[j]
-
-
+    obj_1 = sum([-returns[i]*stocks[i] for i in range(len(stocks))])
+    obj_2 = sum(variance[i][j]*stocks[i]*stocks[j] for i in range(len(stocks))for j in range(i+1, len(stocks)))
+    cqm.set_objective(obj_1+obj_2)
     return cqm
 
 def sample_cqm(cqm):
 
     # TODO: Define your sampler as LeapHybridCQMSampler
     ## Hint: Remember to import the required package at the top of the file
-    
+    sampler = LeapHybridCQMSampler()
+
 
     # TODO: Sample the ConstrainedQuadraticModel cqm and store the result in sampleset
-
+    sampleset = sampler.sample_cqm(cqm)
 
     return sampleset
 
